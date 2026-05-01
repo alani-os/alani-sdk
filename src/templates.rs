@@ -1,0 +1,13 @@
+//! `templates` module boundary.
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemplatesDescriptor<'a> {
+    pub name: &'a str,
+    pub version: u32,
+}
+
+impl<'a> TemplatesDescriptor<'a> {
+    pub const fn new(name: &'a str, version: u32) -> Self {
+        Self { name, version }
+    }
+}
