@@ -1,3 +1,10 @@
 fn main() {
-    println!("alani-sdk starter: see docs/repositories/alani-sdk.md");
+    let catalog = alani_sdk::sdk_catalog();
+    println!(
+        "{} {} modules={} features=0x{:x}",
+        catalog.repository,
+        catalog.version,
+        alani_sdk::module_names().len(),
+        catalog.features
+    );
 }
