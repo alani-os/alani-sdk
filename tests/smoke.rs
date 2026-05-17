@@ -7,6 +7,7 @@ fn repository_catalog_is_stable() {
     assert_eq!(module_names(), ["cli", "codegen", "templates", "sysroot"]);
     assert_eq!(catalog.cli_schema, CLI_SCHEMA_VERSION);
     assert_eq!(catalog.codegen_schema, CODEGEN_SCHEMA_VERSION);
+    assert_eq!(catalog.build_helper_schema, BUILD_HELPER_SCHEMA_VERSION);
     assert!(catalog.validate().is_ok());
     assert_eq!(component_info().status, ComponentStatus::Experimental);
 }
@@ -54,6 +55,44 @@ fn cli_registry_plans_commands_and_fails_closed() {
         registry.plan(caller, invocation, false).unwrap_err(),
         SdkError::AuditRequired
     );
+}
+
+#[test]
+fn local_build_helpers_are_planned_without_host_side_effects() {
+    let trace = TraceContext::root(5, 50);
+    let workspace = "/work/alani";
+    let fmt = BuildHelperDescriptor::new("fmt.check", BuildHelperKind::FormatCheck, workspace)
+        .with_trace(trace);
+    let examples = BuildHelperDescriptor::new(
+        "example.validation",
+        BuildHelperKind::ValidateExamples,
+        workspace,
+    )
+    .with_trace(trace);
+
+    assert_eq!(BuildHelperKind::FormatCheck.label(), "format.check");
+    assert_eq!(
+        BuildHelperKind::from_label("validate.examples"),
+        Some(BuildHelperKind::ValidateExamples)
+    );
+    assert_eq!(CliCommandKind::Build.label(), "build");
+
+    let mut plan: BuildHelperPlan<4> = BuildHelperPlan::new(workspace, trace).unwrap();
+    assert_eq!(plan.validate().unwrap_err(), SdkError::MissingField);
+    plan.push_helper(fmt).unwrap();
+    assert_eq!(plan.push_helper(fmt).unwrap_err(), SdkError::Duplicate);
+    plan.push_helper(examples).unwrap();
+    assert_eq!(plan.len(), 2);
+    assert_eq!(plan.status, BuildHelperStatus::Planned);
+    assert_eq!(
+        plan.find("fmt.check").unwrap().kind,
+        BuildHelperKind::FormatCheck
+    );
+    assert_eq!(
+        plan.authorize(SdkRights::READ, false).unwrap_err(),
+        SdkError::AccessDenied
+    );
+    assert!(plan.authorize(SdkRights::BUILD, false).is_ok());
 }
 
 #[test]

@@ -11,6 +11,8 @@ use crate::{
 
 /// CLI descriptor schema version.
 pub const CLI_SCHEMA_VERSION: &str = "alani-sdk.cli.v1";
+/// Local build-helper schema version.
+pub const BUILD_HELPER_SCHEMA_VERSION: &str = "alani-sdk.build-helper.v1";
 /// Maximum CLI command label length.
 pub const MAX_CLI_NAME_LEN: usize = 64;
 /// Maximum CLI argument value length.
@@ -21,6 +23,10 @@ pub const MAX_CLI_WORKDIR_LEN: usize = 192;
 pub const MAX_CLI_ARGUMENTS: usize = 24;
 /// Default CLI command registry capacity.
 pub const MAX_COMMANDS: usize = 64;
+/// Maximum build-helper label length.
+pub const MAX_BUILD_HELPER_LABEL_LEN: usize = 64;
+/// Default build-helper plan capacity.
+pub const MAX_BUILD_HELPERS: usize = 16;
 
 /// SDK CLI command family.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,6 +49,37 @@ pub enum CliCommandKind {
     Help,
 }
 
+impl CliCommandKind {
+    /// Stable command-kind label for manifests and CLI metadata.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Version => "version",
+            Self::InitRepository => "init.repository",
+            Self::Generate => "generate",
+            Self::TemplateList => "template.list",
+            Self::SysrootPlan => "sysroot.plan",
+            Self::Build => "build",
+            Self::CompatCheck => "compat.check",
+            Self::Help => "help",
+        }
+    }
+
+    /// Parses a stable command-kind label.
+    pub const fn from_label(label: &str) -> Option<Self> {
+        match label.as_bytes() {
+            b"version" => Some(Self::Version),
+            b"init.repository" => Some(Self::InitRepository),
+            b"generate" => Some(Self::Generate),
+            b"template.list" => Some(Self::TemplateList),
+            b"sysroot.plan" => Some(Self::SysrootPlan),
+            b"build" => Some(Self::Build),
+            b"compat.check" => Some(Self::CompatCheck),
+            b"help" => Some(Self::Help),
+            _ => None,
+        }
+    }
+}
+
 /// CLI invocation status.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CliStatus {
@@ -56,6 +93,91 @@ pub enum CliStatus {
     NeedsAudit,
     /// Invocation failed validation or planning.
     Failed,
+}
+
+impl CliStatus {
+    /// Stable invocation status label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Planned => "planned",
+            Self::Completed => "completed",
+            Self::Denied => "denied",
+            Self::NeedsAudit => "needs.audit",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// Local build-helper family.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BuildHelperKind {
+    /// Verify formatting without rewriting sources.
+    FormatCheck,
+    /// Run Rust compiler checks.
+    Check,
+    /// Run tests.
+    Test,
+    /// Run lint checks.
+    Lint,
+    /// Build generated documentation.
+    Docs,
+    /// Validate checked-in example manifests or schemas.
+    ValidateExamples,
+}
+
+impl BuildHelperKind {
+    /// Stable build-helper label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::FormatCheck => "format.check",
+            Self::Check => "check",
+            Self::Test => "test",
+            Self::Lint => "lint",
+            Self::Docs => "docs",
+            Self::ValidateExamples => "validate.examples",
+        }
+    }
+
+    /// Parses a stable build-helper label.
+    pub const fn from_label(label: &str) -> Option<Self> {
+        match label.as_bytes() {
+            b"format.check" => Some(Self::FormatCheck),
+            b"check" => Some(Self::Check),
+            b"test" => Some(Self::Test),
+            b"lint" => Some(Self::Lint),
+            b"docs" => Some(Self::Docs),
+            b"validate.examples" => Some(Self::ValidateExamples),
+            _ => None,
+        }
+    }
+}
+
+/// Local build-helper lifecycle status.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BuildHelperStatus {
+    /// Build helper was declared.
+    Declared,
+    /// Build helper was added to a side-effect-free plan.
+    Planned,
+    /// Build helper completed in a host executor.
+    Completed,
+    /// Build helper was denied by rights or audit readiness.
+    Denied,
+    /// Build helper failed validation or execution.
+    Failed,
+}
+
+impl BuildHelperStatus {
+    /// Stable build-helper status label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Declared => "declared",
+            Self::Planned => "planned",
+            Self::Completed => "completed",
+            Self::Denied => "denied",
+            Self::Failed => "failed",
+        }
+    }
 }
 
 /// CLI argument metadata.
@@ -193,6 +315,11 @@ impl<'a> CliDescriptor<'a> {
         if self.requires_audit && !self.required_rights.contains(SdkRights::AUDIT) {
             return Err(SdkError::AuditRequired);
         }
+        if self.data_class.requires_redaction()
+            && matches!(self.redaction, RedactionState::UnredactedSensitive)
+        {
+            return Err(SdkError::SensitiveData);
+        }
         validate_redaction(self.data_class, self.redaction)?;
         self.trace.validate()
     }
@@ -299,6 +426,198 @@ impl<'a> CliPlan<'a> {
         caller.require(self.required_rights)?;
         if self.audit_required && (!audit_ready || !caller.contains(SdkRights::AUDIT)) {
             return Err(SdkError::AuditRequired);
+        }
+        Ok(())
+    }
+}
+
+/// Stable local build-helper descriptor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BuildHelperDescriptor<'a> {
+    /// Stable helper name.
+    pub name: &'a str,
+    /// Build-helper schema version.
+    pub schema: &'static str,
+    /// Build-helper family.
+    pub kind: BuildHelperKind,
+    /// Workspace label or path.
+    pub workspace: &'a str,
+    /// Rights required to plan or execute the helper.
+    pub required_rights: SdkRights,
+    /// Whether the helper must preserve audit evidence.
+    pub requires_audit: bool,
+    /// Data class for helper metadata.
+    pub data_class: DataClass,
+    /// Redaction state for helper metadata.
+    pub redaction: RedactionState,
+    /// Trace context attached to the helper.
+    pub trace: TraceContext,
+}
+
+impl<'a> BuildHelperDescriptor<'a> {
+    /// Creates a build-helper descriptor.
+    pub const fn new(name: &'a str, kind: BuildHelperKind, workspace: &'a str) -> Self {
+        Self {
+            name,
+            schema: BUILD_HELPER_SCHEMA_VERSION,
+            kind,
+            workspace,
+            required_rights: SdkRights::BUILD,
+            requires_audit: false,
+            data_class: DataClass::Operational,
+            redaction: RedactionState::Operational,
+            trace: TraceContext::EMPTY,
+        }
+    }
+
+    /// Overrides required rights.
+    pub const fn with_rights(mut self, rights: SdkRights) -> Self {
+        self.required_rights = rights;
+        self
+    }
+
+    /// Marks the helper as audit-required.
+    pub const fn with_audit(mut self) -> Self {
+        self.requires_audit = true;
+        self
+    }
+
+    /// Overrides classification and redaction metadata.
+    pub const fn with_data(mut self, data_class: DataClass, redaction: RedactionState) -> Self {
+        self.data_class = data_class;
+        self.redaction = redaction;
+        self
+    }
+
+    /// Attaches trace metadata.
+    pub const fn with_trace(mut self, trace: TraceContext) -> Self {
+        self.trace = trace;
+        self
+    }
+
+    /// Validates build-helper descriptor metadata.
+    pub fn validate(self) -> SdkResult<()> {
+        validate_sdk_label(self.name, MAX_BUILD_HELPER_LABEL_LEN)
+            .map_err(|_| SdkError::InvalidCli)?;
+        validate_sdk_label(self.workspace, MAX_CLI_WORKDIR_LEN)
+            .map_err(|_| SdkError::InvalidCli)?;
+        if self.schema.is_empty() {
+            return Err(SdkError::InvalidCli);
+        }
+        self.required_rights.validate()?;
+        if self.requires_audit && !self.required_rights.contains(SdkRights::AUDIT) {
+            return Err(SdkError::AuditRequired);
+        }
+        if self.data_class.requires_redaction()
+            && matches!(self.redaction, RedactionState::UnredactedSensitive)
+        {
+            return Err(SdkError::SensitiveData);
+        }
+        validate_redaction(self.data_class, self.redaction)?;
+        self.trace.validate()
+    }
+}
+
+/// Side-effect-free local build-helper plan.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BuildHelperPlan<'a, const N: usize> {
+    /// Workspace label or path shared by this plan.
+    pub workspace: &'a str,
+    /// Planned lifecycle status.
+    pub status: BuildHelperStatus,
+    helpers: [Option<BuildHelperDescriptor<'a>>; N],
+    len: usize,
+    /// Trace context for this build plan.
+    pub trace: TraceContext,
+}
+
+impl<'a, const N: usize> BuildHelperPlan<'a, N> {
+    /// Creates an empty build-helper plan.
+    pub fn new(workspace: &'a str, trace: TraceContext) -> SdkResult<Self> {
+        validate_sdk_label(workspace, MAX_CLI_WORKDIR_LEN).map_err(|_| SdkError::InvalidCli)?;
+        trace.validate()?;
+        Ok(Self {
+            workspace,
+            status: BuildHelperStatus::Declared,
+            helpers: [None; N],
+            len: 0,
+            trace,
+        })
+    }
+
+    /// Returns the number of helpers in the plan.
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns `true` when no helpers are planned.
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Returns a helper by index.
+    pub fn helper(&self, index: usize) -> Option<BuildHelperDescriptor<'a>> {
+        if index >= self.len {
+            None
+        } else {
+            self.helpers[index]
+        }
+    }
+
+    /// Finds a helper by name.
+    pub fn find(&self, name: &str) -> SdkResult<BuildHelperDescriptor<'a>> {
+        validate_sdk_label(name, MAX_BUILD_HELPER_LABEL_LEN)?;
+        for helper in self.helpers.iter().take(self.len).flatten() {
+            if helper.name == name {
+                return Ok(*helper);
+            }
+        }
+        Err(SdkError::CommandNotFound)
+    }
+
+    /// Adds a helper to the plan.
+    pub fn push_helper(&mut self, helper: BuildHelperDescriptor<'a>) -> SdkResult<()> {
+        if self.len >= N {
+            return Err(SdkError::CapacityExceeded);
+        }
+        helper.validate()?;
+        if helper.workspace != self.workspace {
+            return Err(SdkError::InvalidCli);
+        }
+        if self.find(helper.name).is_ok() {
+            return Err(SdkError::Duplicate);
+        }
+        self.helpers[self.len] = Some(helper);
+        self.len += 1;
+        self.status = BuildHelperStatus::Planned;
+        Ok(())
+    }
+
+    /// Validates the complete build-helper plan.
+    pub fn validate(&self) -> SdkResult<()> {
+        validate_sdk_label(self.workspace, MAX_CLI_WORKDIR_LEN)
+            .map_err(|_| SdkError::InvalidCli)?;
+        if self.len == 0 {
+            return Err(SdkError::MissingField);
+        }
+        for helper in self.helpers.iter().take(self.len).flatten() {
+            helper.validate()?;
+            if helper.workspace != self.workspace {
+                return Err(SdkError::InvalidCli);
+            }
+        }
+        self.trace.validate()
+    }
+
+    /// Checks whether a caller may run every helper in the plan.
+    pub fn authorize(&self, caller: SdkRights, audit_ready: bool) -> SdkResult<()> {
+        self.validate()?;
+        caller.validate()?;
+        for helper in self.helpers.iter().take(self.len).flatten() {
+            caller.require(helper.required_rights)?;
+            if helper.requires_audit && (!audit_ready || !caller.contains(SdkRights::AUDIT)) {
+                return Err(SdkError::AuditRequired);
+            }
         }
         Ok(())
     }

@@ -40,6 +40,16 @@ impl SdkHostTriple {
             Self::HostSimulated => "host-simulated",
         }
     }
+
+    /// Parses a stable host triple label.
+    pub const fn from_label(label: &str) -> Option<Self> {
+        match label.as_bytes() {
+            b"x86_64-unknown-linux-gnu" => Some(Self::X86_64UnknownLinuxGnu),
+            b"aarch64-unknown-linux-gnu" => Some(Self::Aarch64UnknownLinuxGnu),
+            b"host-simulated" => Some(Self::HostSimulated),
+            _ => None,
+        }
+    }
 }
 
 /// Sysroot lifecycle state.
@@ -55,6 +65,18 @@ pub enum SysrootState {
     Failed,
 }
 
+impl SysrootState {
+    /// Stable state label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Declared => "declared",
+            Self::Planned => "planned",
+            Self::Ready => "ready",
+            Self::Failed => "failed",
+        }
+    }
+}
+
 /// Compatibility check status.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompatibilityStatus {
@@ -66,6 +88,18 @@ pub enum CompatibilityStatus {
     Incompatible,
     /// Compatibility evidence is missing.
     MissingEvidence,
+}
+
+impl CompatibilityStatus {
+    /// Stable compatibility status label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Compatible => "compatible",
+            Self::Incompatible => "incompatible",
+            Self::MissingEvidence => "missing.evidence",
+        }
+    }
 }
 
 /// Sysroot layout descriptor.

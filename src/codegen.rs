@@ -38,6 +38,33 @@ pub enum CodegenSchemaKind {
     Cli,
 }
 
+impl CodegenSchemaKind {
+    /// Stable schema-kind label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Abi => "abi",
+            Self::Protocol => "protocol",
+            Self::Config => "config",
+            Self::Docs => "docs",
+            Self::Repository => "repository",
+            Self::Cli => "cli",
+        }
+    }
+
+    /// Parses a stable schema-kind label.
+    pub const fn from_label(label: &str) -> Option<Self> {
+        match label.as_bytes() {
+            b"abi" => Some(Self::Abi),
+            b"protocol" => Some(Self::Protocol),
+            b"config" => Some(Self::Config),
+            b"docs" => Some(Self::Docs),
+            b"repository" => Some(Self::Repository),
+            b"cli" => Some(Self::Cli),
+            _ => None,
+        }
+    }
+}
+
 /// Code generation target.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CodegenTarget {
@@ -53,6 +80,31 @@ pub enum CodegenTarget {
     Shell,
 }
 
+impl CodegenTarget {
+    /// Stable target label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Rust => "rust",
+            Self::Markdown => "markdown",
+            Self::JsonSchema => "json.schema",
+            Self::Toml => "toml",
+            Self::Shell => "shell",
+        }
+    }
+
+    /// Parses a stable target label.
+    pub const fn from_label(label: &str) -> Option<Self> {
+        match label.as_bytes() {
+            b"rust" => Some(Self::Rust),
+            b"markdown" => Some(Self::Markdown),
+            b"json.schema" => Some(Self::JsonSchema),
+            b"toml" => Some(Self::Toml),
+            b"shell" => Some(Self::Shell),
+            _ => None,
+        }
+    }
+}
+
 /// Code generation lifecycle status.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CodegenStatus {
@@ -66,6 +118,19 @@ pub enum CodegenStatus {
     Failed,
     /// Job was denied before generation.
     Denied,
+}
+
+impl CodegenStatus {
+    /// Stable status label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Declared => "declared",
+            Self::Ready => "ready",
+            Self::Generated => "generated",
+            Self::Failed => "failed",
+            Self::Denied => "denied",
+        }
+    }
 }
 
 /// Code generation job descriptor.

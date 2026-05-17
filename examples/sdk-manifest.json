@@ -1,0 +1,96 @@
+{
+  "schema_version": "alani.sdk.manifest.v1",
+  "repository": "alani-sdk",
+  "version": "0.1.0",
+  "modules": [
+    "cli",
+    "codegen",
+    "templates",
+    "sysroot"
+  ],
+  "cli": [
+    {
+      "name": "generate",
+      "schema": "alani-sdk.cli.v1",
+      "kind": "generate",
+      "required_rights": [
+        "run_cli",
+        "codegen"
+      ],
+      "requires_audit": false
+    },
+    {
+      "name": "build.check",
+      "schema": "alani-sdk.cli.v1",
+      "kind": "build",
+      "required_rights": [
+        "run_cli",
+        "build"
+      ],
+      "requires_audit": false
+    }
+  ],
+  "codegen": [
+    {
+      "name": "protocol.rust",
+      "schema": "alani-sdk.codegen.v1",
+      "schema_kind": "protocol",
+      "target": "rust",
+      "source_schema": "alani.protocol.message",
+      "output_path": "generated/protocol.rs",
+      "required_rights": [
+        "codegen"
+      ],
+      "requires_audit": false
+    }
+  ],
+  "templates": [
+    {
+      "name": "repo.rust",
+      "schema": "alani-sdk.templates.v1",
+      "kind": "rust.crate",
+      "version": "0.1.0",
+      "path": "Cargo.toml",
+      "required_rights": [
+        "template_read"
+      ],
+      "requires_audit": false
+    }
+  ],
+  "sysroots": [
+    {
+      "name": "host.sysroot",
+      "schema": "alani-sdk.sysroot.v1",
+      "target_triple": "x86_64-unknown-linux-gnu",
+      "host": "x86_64-unknown-linux-gnu",
+      "root": "/sdk/sysroot",
+      "required_rights": [
+        "sysroot_write",
+        "audit"
+      ],
+      "requires_audit": true
+    }
+  ],
+  "build_helpers": [
+    {
+      "name": "fmt.check",
+      "schema": "alani-sdk.build-helper.v1",
+      "kind": "format.check",
+      "workspace": "/work/alani",
+      "required_rights": [
+        "build"
+      ],
+      "requires_audit": false
+    },
+    {
+      "name": "example.validation",
+      "schema": "alani-sdk.build-helper.v1",
+      "kind": "validate.examples",
+      "workspace": "/work/alani",
+      "required_rights": [
+        "build"
+      ],
+      "requires_audit": false
+    }
+  ]
+}

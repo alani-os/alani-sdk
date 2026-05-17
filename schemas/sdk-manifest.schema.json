@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Alani SDK Manifest",
+  "description": "Machine-readable schema metadata for alani.sdk.manifest.v1 SDK manifests.",
+  "x-alani-schema-version": "alani.sdk.manifest.v1",
+  "x-alani-repository": "alani-sdk",
+  "x-alani-cli-schema": "alani-sdk.cli.v1",
+  "x-alani-codegen-schema": "alani-sdk.codegen.v1",
+  "x-alani-templates-schema": "alani-sdk.templates.v1",
+  "x-alani-sysroot-schema": "alani-sdk.sysroot.v1",
+  "x-alani-build-helper-schema": "alani-sdk.build-helper.v1",
+  "x-alani-modules": [
+    "cli",
+    "codegen",
+    "templates",
+    "sysroot"
+  ],
+  "x-alani-rights": [
+    "read",
+    "run_cli",
+    "codegen",
+    "template_read",
+    "template_write",
+    "sysroot_read",
+    "sysroot_write",
+    "build",
+    "compat_check",
+    "audit",
+    "admin"
+  ],
+  "x-alani-command-kinds": [
+    "version",
+    "init.repository",
+    "generate",
+    "template.list",
+    "sysroot.plan",
+    "build",
+    "compat.check",
+    "help"
+  ],
+  "x-alani-build-helper-kinds": [
+    "format.check",
+    "check",
+    "test",
+    "lint",
+    "docs",
+    "validate.examples"
+  ],
+  "x-alani-codegen-schema-kinds": [
+    "abi",
+    "protocol",
+    "config",
+    "docs",
+    "repository",
+    "cli"
+  ],
+  "x-alani-codegen-targets": [
+    "rust",
+    "markdown",
+    "json.schema",
+    "toml",
+    "shell"
+  ],
+  "x-alani-template-kinds": [
+    "repository",
+    "rust.crate",
+    "ci.workflow",
+    "documentation",
+    "config"
+  ],
+  "x-alani-host-triples": [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "host-simulated"
+  ]
+}

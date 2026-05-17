@@ -13,9 +13,10 @@ pub mod sysroot;
 pub mod templates;
 
 pub use cli::{
-    CliArgument, CliCommandKind, CliDescriptor, CliInvocation, CliPlan, CliRegistry, CliStatus,
-    CLI_SCHEMA_VERSION, MAX_CLI_ARGUMENTS, MAX_CLI_ARGUMENT_LEN, MAX_CLI_NAME_LEN,
-    MAX_CLI_WORKDIR_LEN, MAX_COMMANDS,
+    BuildHelperDescriptor, BuildHelperKind, BuildHelperPlan, BuildHelperStatus, CliArgument,
+    CliCommandKind, CliDescriptor, CliInvocation, CliPlan, CliRegistry, CliStatus,
+    BUILD_HELPER_SCHEMA_VERSION, CLI_SCHEMA_VERSION, MAX_BUILD_HELPERS, MAX_BUILD_HELPER_LABEL_LEN,
+    MAX_CLI_ARGUMENTS, MAX_CLI_ARGUMENT_LEN, MAX_CLI_NAME_LEN, MAX_CLI_WORKDIR_LEN, MAX_COMMANDS,
 };
 pub use codegen::{
     CodegenArtifact, CodegenDescriptor, CodegenJob, CodegenRegistry, CodegenSchemaKind,
@@ -493,6 +494,8 @@ pub struct SdkCatalog {
     pub templates_schema: &'static str,
     /// Sysroot schema version.
     pub sysroot_schema: &'static str,
+    /// Local build-helper schema version.
+    pub build_helper_schema: &'static str,
 }
 
 impl SdkCatalog {
@@ -506,6 +509,7 @@ impl SdkCatalog {
         codegen_schema: CODEGEN_SCHEMA_VERSION,
         templates_schema: TEMPLATES_SCHEMA_VERSION,
         sysroot_schema: SYSROOT_SCHEMA_VERSION,
+        build_helper_schema: BUILD_HELPER_SCHEMA_VERSION,
     };
 
     /// Validates catalog metadata.
@@ -516,6 +520,7 @@ impl SdkCatalog {
             || self.codegen_schema.is_empty()
             || self.templates_schema.is_empty()
             || self.sysroot_schema.is_empty()
+            || self.build_helper_schema.is_empty()
         {
             return Err(SdkError::MissingField);
         }

@@ -18,6 +18,7 @@ cargo test --all-features
 cargo test --no-default-features
 cargo check --no-default-features
 cargo clippy --all-features -- -D warnings
+python3 tools/validate_sdk_examples.py
 ```
 
 ## Repository Layout
@@ -26,6 +27,17 @@ cargo clippy --all-features -- -D warnings
 - `src/codegen.rs` owns schema-to-artifact job contracts and generated artifact metadata.
 - `src/templates.rs` owns repository template descriptors, template file records, catalogs, and render plans.
 - `src/sysroot.rs` owns sysroot layouts, component plans, host target metadata, and compatibility checks.
+- `schemas/sdk-manifest.schema.json` publishes SDK manifest metadata and stable enum labels.
+- `examples/sdk-manifest.json` is a checked SDK manifest example covering CLI, codegen, templates, sysroots, and build helpers.
+- `tools/validate_sdk_examples.py` validates checked-in examples without external dependencies.
+
+## Public Contracts
+
+- CLI commands use `CliDescriptor`, `CliInvocation`, `CliPlan`, and `CliRegistry`.
+- Local build helpers use `BuildHelperDescriptor` and `BuildHelperPlan`; they describe format, check, test, lint, docs, and example-validation helpers without invoking the host shell.
+- Code generation uses `CodegenDescriptor`, `CodegenJob`, `CodegenArtifact`, and `CodegenRegistry`.
+- Repository templates use `TemplateDescriptor`, `TemplateRecord`, `TemplateCatalog`, and `RenderPlan`.
+- Sysroot and compatibility contracts use `SysrootDescriptor`, `SysrootPlan`, `SysrootRegistry`, and `CompatibilityCheck`.
 
 ## Feature Flags
 

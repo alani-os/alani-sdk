@@ -37,6 +37,31 @@ pub enum TemplateKind {
     Config,
 }
 
+impl TemplateKind {
+    /// Stable template-kind label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Repository => "repository",
+            Self::RustCrate => "rust.crate",
+            Self::CiWorkflow => "ci.workflow",
+            Self::Documentation => "documentation",
+            Self::Config => "config",
+        }
+    }
+
+    /// Parses a stable template-kind label.
+    pub const fn from_label(label: &str) -> Option<Self> {
+        match label.as_bytes() {
+            b"repository" => Some(Self::Repository),
+            b"rust.crate" => Some(Self::RustCrate),
+            b"ci.workflow" => Some(Self::CiWorkflow),
+            b"documentation" => Some(Self::Documentation),
+            b"config" => Some(Self::Config),
+            _ => None,
+        }
+    }
+}
+
 /// Template lifecycle status.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TemplateStatus {
@@ -48,6 +73,18 @@ pub enum TemplateStatus {
     Rendered,
     /// Template is deprecated.
     Deprecated,
+}
+
+impl TemplateStatus {
+    /// Stable status label.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Ready => "ready",
+            Self::Rendered => "rendered",
+            Self::Deprecated => "deprecated",
+        }
+    }
 }
 
 /// Template descriptor metadata.
